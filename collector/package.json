@@ -1,0 +1,29 @@
+{
+  "name": "densemble-analytics-collector",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Collector of Densemble Analytics: validates events and stores them in PostgreSQL.",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": "24.x"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "dev": "tsx src/main.ts",
+    "start": "node dist/main.js"
+  },
+  "dependencies": {
+    "pg": "8.23.1",
+    "zod": "4.3.6"
+  },
+  "devDependencies": {
+    "@types/node": "24.19.0",
+    "@types/pg": "8.23.1",
+    "tsx": "4.23.15",
+    "typescript": "5.9.3",
+    "vitest": "4.1.11"
+  }
+}

@@ -1,0 +1,11 @@
+name: densemble_analytics_example_site
+description: The smallest web page that reports to Densemble Analytics.
+publish_to: none
+environment:
+  sdk: ^3.13.0
+dependencies:
+  densemble_analytics:
+    path: ../../clients/dart/densemble_analytics
+  web: 1.1.2
+dev_dependencies:
+  lints: 6.1.0
