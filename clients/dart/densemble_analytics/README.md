@@ -5,9 +5,14 @@ Minimal analytics client for Dart web apps. Each event is sent at once to a coll
 
 ## Install
 
+The package is not on pub.dev. Use it from Git:
+
 ```yaml
 dependencies:
-  densemble_analytics: ^0.1.0
+  densemble_analytics:
+    git:
+      url: https://github.com/savavskoy/densemble-analytics.git
+      path: clients/dart/densemble_analytics
 ```
 
 ## Web setup

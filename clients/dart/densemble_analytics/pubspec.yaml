@@ -1,6 +1,7 @@
 name: densemble_analytics
 description: Minimal privacy-minded analytics client for Dart web apps. Sends each event to a collector; no cookies, no identifiers.
 version: 0.1.0
+publish_to: none
 repository: https://github.com/savavskoy/densemble-analytics/tree/main/clients/dart/densemble_analytics
 issue_tracker: https://github.com/savavskoy/densemble-analytics/issues
 topics:

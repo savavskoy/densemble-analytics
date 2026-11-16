@@ -5,7 +5,7 @@ Any other language can use the [HTTP format](event-format.md) directly.
 
 ## Install
 
-The package is not on pub.dev yet. Use it from Git:
+The package is not on pub.dev. Use it from Git:
 
 ```yaml
 dependencies:
