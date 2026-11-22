@@ -24,4 +24,7 @@ class FixedContext implements ContextProvider {
   EventContext current() => value;
 }
 
-final config = AnalyticsConfig(endpoint: Uri.parse('https://example.com/v1/events'), source: 'my-site');
+final endpoint = Uri.parse('https://example.com/v1/events');
+
+DensembleAnalytics client(Transport transport, [ContextProvider? context]) =>
+    DensembleAnalytics(endpoint: endpoint, source: 'my-site', transport: transport, context: context ?? FixedContext());

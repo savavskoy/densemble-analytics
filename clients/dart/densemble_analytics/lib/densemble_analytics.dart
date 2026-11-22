@@ -3,5 +3,4 @@
 /// Browser code adds `package:densemble_analytics/web.dart`.
 library;
 
-export 'src/analytics.dart';
-export 'src/direct.dart';
+export 'src/densemble_analytics.dart';

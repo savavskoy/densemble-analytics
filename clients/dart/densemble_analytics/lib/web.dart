@@ -1,7 +1,7 @@
 /// Browser entry point. Import only from code that runs in a browser.
 ///
-/// Server-rendered code must build `NoopAnalytics` instead; as a second line,
-/// [WebAnalytics.create] returns `NoopAnalytics` without a `window`.
+/// Server-rendered code must not import it; as a second line, [WebAnalytics.create]
+/// returns null without a `window`.
 library;
 
 import 'dart:js_interop';
@@ -34,12 +34,14 @@ class WebTransport implements Transport {
 }
 
 abstract final class WebAnalytics {
-  /// Analytics for a page. `NoopAnalytics` without a browser `window`, [endpoint] or [source].
-  static Analytics create({Uri? endpoint, String? source}) {
+  /// The client for a page. Null without a browser `window`, [endpoint] or [source]:
+  /// the host project then uses its own "analytics off" implementation.
+  static DensembleAnalytics? create({Uri? endpoint, String? source}) {
     try {
-      if (!globalContext.has('window')) return const NoopAnalytics();
-      return DirectAnalytics.create(
-        AnalyticsConfig(endpoint: endpoint, source: source),
+      if (!globalContext.has('window')) return null;
+      return DensembleAnalytics.create(
+        endpoint: endpoint,
+        source: source,
         transport: WebTransport(),
         context: PageLoadContext(
           pathname: () => web.window.location.pathname,
@@ -49,12 +51,13 @@ abstract final class WebAnalytics {
         ),
       );
     } catch (_) {
-      return const NoopAnalytics();
+      return null;
     }
   }
 }
 
-/// Single-page navigation: call after the router changed the address.
-extension WebPageViews on Analytics {
-  void trackPageView({String? title}) => track(ScreenView(title: title ?? web.document.title));
+/// Page views. Only the length of the title is sent, never the text.
+extension WebPageViews on DensembleAnalytics {
+  /// Once per page load; call again after an in-page (single-page) navigation.
+  void trackPageView() => track('page_view', params: {'title_len': web.document.title.length});
 }

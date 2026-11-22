@@ -1,13 +1,13 @@
+import 'dart:async';
 import 'dart:convert';
-import 'analytics.dart';
 
-/// How a request body is delivered. Fire-and-forget: failures may throw, [DirectAnalytics]
+/// How a request body is delivered. Fire-and-forget: failures may throw, [DensembleAnalytics]
 /// swallows them.
 abstract interface class Transport {
   Future<void> send(Uri endpoint, String jsonBody);
 }
 
-/// Where the event happened. [DirectAnalytics] reads it for every event.
+/// Where the event happened. [DensembleAnalytics] reads it for every event.
 class EventContext {
   const EventContext({this.path, this.referrer, this.utm = const {}, this.language});
   final String? path;
@@ -31,40 +31,59 @@ abstract interface class ContextProvider {
   EventContext current();
 }
 
-/// Endpoint (full address of `POST /v1/events`) and source. A null one means analytics is off.
-class AnalyticsConfig {
-  const AnalyticsConfig({this.endpoint, this.source});
-  final Uri? endpoint;
-  final String? source;
-
-  bool get isConfigured => endpoint != null && endpoint!.hasScheme && source != null && _source.hasMatch(source!);
-}
-
 final _source = RegExp(r'^[a-z][a-z0-9_-]{1,39}$');
 final _name = RegExp(r'^[a-z][a-z0-9_]{0,63}$');
 final _key = RegExp(r'^[a-z][a-z0-9_]{0,39}$');
 
-/// Sends each event at once, in its own request. Nothing is kept: a failed send is forgotten.
-final class DirectAnalytics implements Analytics {
-  DirectAnalytics(AnalyticsConfig config, {required this.transport, required this.context, this.sendTimeout = const Duration(seconds: 10)})
-      : _endpoint = config.endpoint!,
-        _source = config.source!;
+/// The Densemble Analytics client: sends each event at once, in its own request, to the
+/// collector's `POST /v1/events`. Nothing is kept: a failed send is forgotten.
+///
+/// A concrete class, not an interface. Hide it behind your project's own analytics
+/// interface, so the rest of the project does not depend on this package.
+final class DensembleAnalytics {
+  /// [endpoint] is the full address of `POST /v1/events`; [source] names the site or app.
+  /// Throws [ArgumentError] when either is invalid; [create] returns null instead.
+  DensembleAnalytics({
+    required Uri endpoint,
+    required String source,
+    required this.transport,
+    required this.context,
+    this.sendTimeout = const Duration(seconds: 10),
+  }) : _endpoint = endpoint,
+       _sourceName = source {
+    if (!isValidConfig(endpoint: endpoint, source: source)) {
+      throw ArgumentError('endpoint must be absolute and source must match ${_source.pattern}');
+    }
+  }
 
-  /// [NoopAnalytics] when [config] has no endpoint or source.
-  static Analytics create(AnalyticsConfig config, {required Transport transport, required ContextProvider context}) =>
-      config.isConfigured ? DirectAnalytics(config, transport: transport, context: context) : const NoopAnalytics();
+  /// Null when [endpoint] or [source] is missing or invalid: analytics is off.
+  static DensembleAnalytics? create({
+    Uri? endpoint,
+    String? source,
+    required Transport transport,
+    required ContextProvider context,
+  }) => isValidConfig(endpoint: endpoint, source: source)
+      ? DensembleAnalytics(endpoint: endpoint!, source: source!, transport: transport, context: context)
+      : null;
+
+  static bool isValidConfig({Uri? endpoint, String? source}) =>
+      endpoint != null && endpoint.hasScheme && source != null && _source.hasMatch(source);
 
   final Transport transport;
   final ContextProvider context;
   final Duration sendTimeout;
   final Uri _endpoint;
-  final String _source;
+  final String _sourceName;
   final Set<Future<void>> _inflight = {};
 
-  @override
-  void track(AnalyticsEvent event) {
+  /// Records an event. Never throws, never blocks, never awaits the network.
+  ///
+  /// [name] must match `^[a-z][a-z0-9_]{0,63}$`, otherwise the event is dropped.
+  /// [params] is flat: at most 20 keys matching `^[a-z][a-z0-9_]{0,39}$`; values are String
+  /// (cut to 200 chars), finite num or bool. Do not put personal data in parameters.
+  void track(String name, {Map<String, Object> params = const {}}) {
     try {
-      final body = _encode(event);
+      final body = _encode(name, params);
       if (body == null) return;
       late Future<void> f;
       f = Future<void>(() => transport.send(_endpoint, body))
@@ -77,18 +96,17 @@ final class DirectAnalytics implements Analytics {
     }
   }
 
-  @override
+  /// Completes when events already sent have settled. Completes normally even on failure.
   Future<void> flush() async {
     try {
       await Future.wait(_inflight.toList());
     } catch (_) {}
   }
 
-  String? _encode(AnalyticsEvent event) {
-    final name = event.name;
+  String? _encode(String name, Map<String, Object> rawParams) {
     if (!_name.hasMatch(name)) return null;
     final ev = <String, Object>{'name': name};
-    final params = _cleanParams(event.params);
+    final params = _cleanParams(rawParams);
     if (params.isNotEmpty) ev['params'] = params;
     EventContext c;
     try {
@@ -107,7 +125,10 @@ final class DirectAnalytics implements Analytics {
     if (utm.isNotEmpty) ev['utm'] = utm;
     final lang = c.language;
     if (lang != null && lang.isNotEmpty && lang.length <= 20) ev['language'] = lang;
-    return jsonEncode({'source': _source, 'events': [ev]});
+    return jsonEncode({
+      'source': _sourceName,
+      'events': [ev],
+    });
   }
 
   static Map<String, Object> _cleanParams(Object? raw) {

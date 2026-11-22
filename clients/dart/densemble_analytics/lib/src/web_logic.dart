@@ -1,4 +1,4 @@
-import 'direct.dart';
+import 'densemble_analytics.dart';
 
 /// The `utm_source`, `utm_medium` and `utm_campaign` marks of an address query.
 Map<String, String> parseUtm(String? search) {

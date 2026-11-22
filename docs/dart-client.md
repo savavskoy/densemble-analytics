@@ -19,25 +19,44 @@ Or from a local copy: `path: ../densemble-analytics/clients/dart/densemble_analy
 
 ## Use
 
+The package gives you one concrete class, `DensembleAnalytics`. It is not an interface: keep your
+project's own analytics interface, and let one adapter of yours call this class. Then the rest of
+your code does not depend on the package, and you can switch or combine analytics tools later.
+
 ```dart
+// lib/analytics/site_analytics.dart: yours, no package import
+abstract interface class SiteAnalytics {
+  void track(String name, {Map<String, Object> params});
+}
+
+// lib/analytics/densemble_site_analytics.dart: the only file that imports the package
 import 'package:densemble_analytics/densemble_analytics.dart';
 import 'package:densemble_analytics/web.dart';
 
-final analytics = WebAnalytics.create(
+final class DensembleSiteAnalytics implements SiteAnalytics {
+  DensembleSiteAnalytics(this._client);
+  final DensembleAnalytics _client;
+
+  @override
+  void track(String name, {Map<String, Object> params = const {}}) => _client.track(name, params: params);
+}
+
+// browser entry point
+final client = WebAnalytics.create(
   endpoint: const bool.hasEnvironment('ANALYTICS_ENDPOINT')
       ? Uri.parse(const String.fromEnvironment('ANALYTICS_ENDPOINT'))
       : null,
   source: const String.fromEnvironment('ANALYTICS_SOURCE'),
 );
-
-analytics.trackPageView();              // once per page; call again after in-page navigation
-analytics.track(ButtonClick('subscribe'));
-analytics.track(FormSubmit('signup'));  // never put personal data into an event
-analytics.track(const AnalyticsEvent('video_played', params: {'seconds': 12}));
+if (client != null) {
+  client.trackPageView(); // once per page; call again after in-page navigation
+  final SiteAnalytics analytics = DensembleSiteAnalytics(client);
+  analytics.track('form_submit', params: {'id': 'signup'}); // never put personal data into an event
+}
 ```
 
-Built-in events: `ScreenView`, `ButtonClick`, `FormSubmit`, `NavigationClick`. Your own events use
-`AnalyticsEvent(name, params: {...})`; the rules for names and params are in [Event format](event-format.md).
+Event names and params follow the rules in [Event format](event-format.md). `page_view` (from
+`trackPageView`) sends only the length of the page title.
 
 ## Choose the collector at build time
 
@@ -49,14 +68,14 @@ dart compile js web/main.dart -o web/main.dart.js \
   -DANALYTICS_SOURCE=my-site
 ```
 
-If the endpoint or source is missing (local development, tests), `WebAnalytics.create` returns a client that
-does nothing. See [Environments](environments.md).
+If the endpoint or source is missing (local development, tests), `WebAnalytics.create` returns `null`; use your
+own "analytics off" implementation then. See [Environments](environments.md).
 
 ## Behaviour to know
 
 - `track` never throws and never waits. A failed send is silent.
 - The referrer and `utm_*` parameters are read once per page load and sent with the first event.
 - When the page is hidden, pending events are sent with `sendBeacon`.
-- Do not import `web.dart` in code that also runs on a server. Use `const NoopAnalytics()` there.
+- Do not import `web.dart` in code that also runs on a server. Use your own "analytics off" implementation there.
 
 A complete page is in [`example/site`](../example/site).
