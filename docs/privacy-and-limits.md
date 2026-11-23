@@ -3,11 +3,12 @@
 ## What is stored
 
 Only what is in the [table](reading-the-data.md#columns): the event, its parameters, the page path, the referrer
-host, the network, the `utm_*` values, the language, the source and the arrival time.
+host, the network, the `utm_*` values, the language, the country, the source and the arrival time.
 
 ## What is not stored
 
-- The visitor's address and user agent. They are used in memory to build the session key and then dropped.
+- The visitor's address and user agent. They are used in memory to build the session key and to look up the
+  country, and then dropped.
   They are not written to the database or to logs.
 - Cookies, local storage or any identifier on the visitor's device.
 - Full referrer URLs, query strings or fragments.
@@ -28,4 +29,6 @@ stores whatever scalar values you send.
 - Ad blockers can block the client; those visits are missing. A subdomain of your own site helps.
 - A returning visitor looks new after 00:00 UTC.
 - Crawlers are recognised by user agent only; unusual bots can slip in.
+- The country is as good as the database and the address: a VPN or a private relay shows the country of its
+  exit. The image is built with the database of its build month; rebuild it to refresh.
 - The data is as private as your database: restrict who can read `analytics.events`.

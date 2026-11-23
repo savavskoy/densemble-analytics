@@ -13,6 +13,7 @@ All settings are environment variables of the collector.
 | `ANALYTICS_SECRET` | Set a long random value. Without it a new secret is made at each start, so sessions break at every restart. |
 | `ANALYTICS_SOURCES` | Comma-separated list of allowed sources. Empty means any source is accepted. |
 | `ANALYTICS_TRUST_PROXY` | `1` behind your own reverse proxy: the visitor address is read from `X-Forwarded-For`. |
+| `ANALYTICS_GEOIP_DB` | Path to a MaxMind-format country database. The image sets it to the bundled DB-IP Country Lite; unset or unreadable means no countries. |
 | `PORT` | Listening port, default `8080`. |
 
 Set `ANALYTICS_TRUST_PROXY=1` only when a proxy you control sets `X-Forwarded-For`. Without a proxy leave it
@@ -32,7 +33,9 @@ unset. If it is wrong, every visitor looks like the proxy and all sessions merge
 ## Image
 
 `collector/Dockerfile` builds a small non-root image (Node 24). Build it from the repository root:
-`docker build -t densemble-analytics-collector collector`.
+`docker build -t densemble-analytics-collector collector`. The build downloads DB-IP Country Lite of the
+current month (CC BY 4.0: show "IP Geolocation by DB-IP" with a link to <https://db-ip.com> wherever you show
+countries). If the download fails the image is still built, without countries. Rebuild monthly to keep it fresh.
 
 ## Several environments
 

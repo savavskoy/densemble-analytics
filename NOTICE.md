@@ -3,4 +3,6 @@
 - The idea of cookie-less visits identified by a daily-rotating hash of the request comes from
   [Plausible Analytics](https://plausible.io) and [Fathom](https://usefathom.com) (public write-ups).
 - The crawler list is derived from [crawler-user-agents](https://github.com/monperrus/crawler-user-agents) (MIT).
+- IP to country: [IP Geolocation by DB-IP](https://db-ip.com) (Country Lite, CC BY 4.0), read with
+  [node-maxmind](https://github.com/runk/node-maxmind) (MIT).
 - Built with [node-postgres](https://node-postgres.com) and [zod](https://zod.dev).

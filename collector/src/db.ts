@@ -12,6 +12,7 @@ export interface Row {
   utm_medium: string | null;
   utm_campaign: string | null;
   language: string | null;
+  country: string | null;
 }
 
 export interface Store {
@@ -19,7 +20,7 @@ export interface Store {
   insert(rows: Row[]): Promise<void>;
 }
 
-const COLUMNS = ["source", "name", "params", "session", "path", "referrer_host", "network", "utm_source", "utm_medium", "utm_campaign", "language"] as const;
+const COLUMNS = ["source", "name", "params", "session", "path", "referrer_host", "network", "utm_source", "utm_medium", "utm_campaign", "language", "country"] as const;
 
 /** Creates the schema and the table when missing, and returns a Store over the pool. */
 export async function createStore(pool: pg.Pool, schema = "analytics"): Promise<Store> {
@@ -38,8 +39,10 @@ export async function createStore(pool: pg.Pool, schema = "analytics"): Promise<
     utm_source text,
     utm_medium text,
     utm_campaign text,
-    language text
+    language text,
+    country text
   )`);
+  await pool.query(`alter table ${schema}.events add column if not exists country text`);
   await pool.query(`create index if not exists events_source_at on ${schema}.events (source, at)`);
   await pool.query(`create index if not exists events_session_at on ${schema}.events (session, at)`);
   return {

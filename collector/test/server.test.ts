@@ -84,3 +84,28 @@ describe("HTTP", () => {
     expect(store.rows.at(-1)!.session).not.toBe(a!.session);
   });
 });
+
+describe("country", () => {
+  it("stores the country of the forwarded address and never the address", async () => {
+    const rows = memoryStore();
+    const seen: string[] = [];
+    const geo = await start(rows, {
+      trustProxy: true,
+      country: (a) => (seen.push(a), a === "203.0.113.7" ? "ES" : null),
+    });
+    try {
+      await post(geo.url, batch([{ name: "page_view" }]), { "x-forwarded-for": "203.0.113.7, 10.0.0.1" });
+      await post(geo.url, batch([{ name: "page_view" }]), { "x-forwarded-for": "198.51.100.1" });
+      expect(rows.rows.map((r) => r.country)).toEqual(["ES", null]);
+      expect(seen).toEqual(["203.0.113.7", "198.51.100.1"]);
+      expect(JSON.stringify(rows.rows)).not.toContain("203.0.113.7");
+    } finally {
+      await geo.stop();
+    }
+  });
+
+  it("is null without a lookup", async () => {
+    await post(app.url, batch([{ name: "page_view" }]));
+    expect(store.rows.at(-1)!.country).toBeNull();
+  });
+});

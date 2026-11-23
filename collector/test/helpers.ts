@@ -1,6 +1,7 @@
 import type { AddressInfo } from "node:net";
 import pg from "pg";
 import { createStore, type Row, type Store } from "../src/db.js";
+import type { CountryLookup } from "../src/geo.js";
 import { createServer } from "../src/server.js";
 
 export const TEST_DB_URL = process.env["ANALYTICS_TEST_DATABASE_URL"];
@@ -13,13 +14,14 @@ export interface Running {
   stop(): Promise<void>;
 }
 
-export async function start(store: Store, extra: { sources?: string[]; trustProxy?: boolean; secret?: string } = {}): Promise<Running> {
+export async function start(store: Store, extra: { sources?: string[]; trustProxy?: boolean; secret?: string; country?: CountryLookup } = {}): Promise<Running> {
   const logs: string[] = [];
   const server = createServer({
     store,
     secret: extra.secret ?? "test-secret",
     sources: extra.sources ? new Set(extra.sources) : null,
     trustProxy: extra.trustProxy ?? false,
+    country: extra.country ?? null,
     log: (m) => logs.push(m),
   });
   await new Promise<void>((r) => server.listen(0, "127.0.0.1", r));

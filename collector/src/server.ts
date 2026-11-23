@@ -3,6 +3,7 @@ import { detectNetwork, isCrawler } from "./network.js";
 import { sessionKey, utcDay } from "./session.js";
 import { validateBatch, validateEvent } from "./validate.js";
 import type { Row, Store } from "./db.js";
+import type { CountryLookup } from "./geo.js";
 
 export const MAX_BODY = 32 * 1024;
 
@@ -12,6 +13,8 @@ export interface Options {
   /** Allowed sources; null accepts any. */
   sources: ReadonlySet<string> | null;
   trustProxy: boolean;
+  /** Country of the visitor address; the address itself is never stored. Absent: no countries. */
+  country?: CountryLookup | null;
   /** Receives short operational messages only: never addresses, user agents or event data. */
   log: (message: string) => void;
 }
@@ -93,7 +96,9 @@ async function handle(o: Options, req: http.IncomingMessage, res: http.ServerRes
   if (o.sources && !o.sources.has(batch.source)) return send(res, 404, { error: "unknown source" });
 
   const own = originHost(req.headers.origin);
-  const session = sessionKey(o.secret, utcDay(new Date()), batch.source, address(req, o.trustProxy), userAgent);
+  const visitor = address(req, o.trustProxy);
+  const session = sessionKey(o.secret, utcDay(new Date()), batch.source, visitor, userAgent);
+  const country = o.country?.(visitor) ?? null;
   const rows: Row[] = [];
   const rejected: { index: number; reason: string }[] = [];
   batch.events.forEach((raw, index) => {
@@ -113,6 +118,7 @@ async function handle(o: Options, req: http.IncomingMessage, res: http.ServerRes
       utm_medium: e.utmMedium,
       utm_campaign: e.utmCampaign,
       language: e.language,
+      country,
     });
   });
   try {

@@ -14,6 +14,7 @@ Everything is in one table, `analytics.events`. Open it with `psql`, a SQL clien
 | `referrer_host` | Host of the referrer, if any |
 | `network` | Where the visitor came from (see below) |
 | `utm_source`, `utm_medium`, `utm_campaign`, `language` | As sent |
+| `country` | ISO 3166-1 alpha-2 code of the visitor's country (`ES`, `UA`), from the address; null when unknown or when countries are off |
 
 ## How `network` is decided
 

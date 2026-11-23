@@ -12,11 +12,18 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev && npm cache clean --force
 
+FROM node:24-slim AS geoip
+WORKDIR /tool
+COPY tool/fetch-geoip.mjs ./
+RUN mkdir /geo && node fetch-geoip.mjs /geo/country.mmdb
+
 FROM node:24-slim
 ENV NODE_ENV=production
+ENV ANALYTICS_GEOIP_DB=/app/geo/country.mmdb
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
+COPY --from=geoip /geo ./geo
 COPY package.json ./
 USER node
 EXPOSE 8080
